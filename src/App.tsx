@@ -8,16 +8,27 @@ interface ShowWithStats extends Show {
   blockedCount?: number;
 }
 
+interface Stats {
+  totalBlocked: number;
+  todayBlocked: number;
+  topShow: string;
+}
+
 function App() {
   const [shows, setShows] = useState<ShowWithStats[]>([]);
   const [newTitle, setNewTitle] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'shows' | 'movies' | 'dashboard'>('shows');
   const [isProtectionEnabled, setIsProtectionEnabled] = useState(true);
+  const [stats, setStats] = useState<Stats>({
+    totalBlocked: 0,
+    todayBlocked: 0,
+    topShow: ''
+  });
 
   useEffect(() => {
-    // Load saved shows and protection state from storage
-    chrome.storage.sync.get(['shows', 'isProtectionEnabled'], (result) => {
+    // Load saved shows, protection state, and stats from storage
+    chrome.storage.sync.get(['shows', 'isProtectionEnabled', 'stats'], (result) => {
       if (result.shows) {
         // Add some example blocked counts for demonstration
         const showsWithStats = result.shows.map((show: Show) => ({
@@ -25,6 +36,20 @@ function App() {
           blockedCount: Math.floor(Math.random() * 15) + 1 // Random number between 1-15
         }));
         setShows(showsWithStats);
+
+        // Calculate stats based on shows
+        const totalBlocked = showsWithStats.reduce((sum: number, show: ShowWithStats) => 
+          sum + (show.blockedCount || 0), 0
+        );
+        const topShow = showsWithStats.reduce((prev: ShowWithStats, current: ShowWithStats) => 
+          (current.blockedCount || 0) > (prev.blockedCount || 0) ? current : prev
+        ).title;
+
+        setStats({
+          totalBlocked,
+          todayBlocked: Math.floor(totalBlocked * 0.2), // Example: 20% of total for today
+          topShow
+        });
       }
       setIsProtectionEnabled(result.isProtectionEnabled ?? true);
     });
@@ -132,6 +157,23 @@ function App() {
 
       {/* Main Content */}
       <div className="bg-[#FFF8E7]">
+        {/* Stats Bar */}
+        <div className="bg-[#8B4513]/10 p-3 mx-2 mt-2 rounded-lg">
+          <div className="flex items-center gap-2 text-[#8B4513]">
+            <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+              <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd"/>
+            </svg>
+            <span className="font-medium">{stats.totalBlocked}</span>
+            <span className="text-[#8B4513]/80">total</span>
+            <span className="font-medium">{stats.todayBlocked}</span>
+            <span className="text-[#8B4513]/80">today</span>
+            {stats.topShow && (
+              <span className="text-[#8B4513]/80 ml-2">Top: {stats.topShow}</span>
+            )}
+          </div>
+        </div>
+
         {/* Tabs */}
         <div className="bg-gray-200/50 p-2 flex gap-1 rounded-lg mx-2 mt-2">
           <button
