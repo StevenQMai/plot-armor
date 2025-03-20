@@ -159,49 +159,56 @@ function App() {
       <div className="bg-[#FFF8E7]">
         {/* Stats Bar */}
         <div className="bg-[#8B4513]/10 p-3 mx-2 mt-2 rounded-lg">
-          <div className="flex items-center gap-2 text-[#8B4513]">
-            <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+          <div className="flex items-center gap-3 text-[#8B4513]">
+            <svg className="w-5 h-5 text-[#8B4513]/70" viewBox="0 0 20 20" fill="currentColor">
               <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
               <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd"/>
             </svg>
-            <span className="font-medium">{stats.totalBlocked}</span>
-            <span className="text-[#8B4513]/80">total</span>
-            <span className="font-medium">{stats.todayBlocked}</span>
-            <span className="text-[#8B4513]/80">today</span>
+            <div className="flex items-center gap-1.5">
+              <span className="px-2 py-0.5 bg-[#8B4513] text-white rounded font-medium">{stats.totalBlocked}</span>
+              <span className="text-[#8B4513]/70">total</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="px-2 py-0.5 bg-[#8B4513] text-white rounded font-medium">{stats.todayBlocked}</span>
+              <span className="text-[#8B4513]/70">today</span>
+            </div>
             {stats.topShow && (
-              <span className="text-[#8B4513]/80 ml-2">Top: {stats.topShow}</span>
+              <div className="ml-2 px-3 py-1 bg-[#8B4513]/5 rounded-lg border border-[#8B4513]/20">
+                <span className="text-[#8B4513]/70 text-sm">Top: </span>
+                <span className="text-[#8B4513] text-sm font-medium">{stats.topShow}</span>
+              </div>
             )}
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="bg-gray-200/50 p-2 flex gap-1 rounded-lg mx-2 mt-2">
+        <div className="bg-[#8B4513]/20 p-2 flex gap-1 rounded-lg mx-2 mt-2">
           <button
             onClick={() => setActiveTab('shows')}
-            className={`flex-1 py-2 px-4 rounded-lg transition-colors ${
+            className={`flex-1 py-2 px-4 rounded-lg transition-all ${
               activeTab === 'shows' 
-                ? 'bg-white shadow text-black font-medium' 
-                : 'text-gray-600'
+                ? 'bg-white shadow-md text-[#8B4513] font-medium' 
+                : 'text-white/90 hover:bg-[#8B4513]/30 hover:text-white'
             }`}
           >
             TV Shows
           </button>
           <button
             onClick={() => setActiveTab('movies')}
-            className={`flex-1 py-2 px-4 rounded-lg transition-colors ${
+            className={`flex-1 py-2 px-4 rounded-lg transition-all ${
               activeTab === 'movies' 
-                ? 'bg-white shadow text-black font-medium' 
-                : 'text-gray-600'
+                ? 'bg-white shadow-md text-[#8B4513] font-medium' 
+                : 'text-white/90 hover:bg-[#8B4513]/30 hover:text-white'
             }`}
           >
             Movies
           </button>
           <button
             onClick={() => setActiveTab('dashboard')}
-            className={`flex-1 py-2 px-4 rounded-lg transition-colors ${
+            className={`flex-1 py-2 px-4 rounded-lg transition-all ${
               activeTab === 'dashboard' 
-                ? 'bg-white shadow text-black font-medium' 
-                : 'text-gray-600'
+                ? 'bg-white shadow-md text-[#8B4513] font-medium' 
+                : 'text-white/90 hover:bg-[#8B4513]/30 hover:text-white'
             }`}
           >
             Dashboard
