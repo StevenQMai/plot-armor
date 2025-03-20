@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "Plot Armor",
+  "version": "1.0.0",
+  "description": "Block spoilers for your favorite shows and movies",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "tabs"
+  ],
+  "action": {
+    "default_popup": "index.html",
+    "default_icon": "icons/icon.svg"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "icons": {
+    "128": "icons/icon.svg"
+  }
+} 
