@@ -1,17 +1,37 @@
 import { useState, useEffect } from 'react'
 import type { Show } from './types/chrome'
 import './App.css'
-// import reactLogo from './assets/react.svg'
-// import viteLogo from '/vite.svg'
+import {
+  Shield,
+  Plus,
+  X,
+  Eye,
+  EyeOff,
+  Search,
+  Settings,
+  Info,
+  Bell,
+  Filter,
+  ExternalLink,
+} from 'lucide-react'
+import { Switch } from '@/components/ui/switch'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import { ScrollArea } from '@/components/ui/scroll-area'
 
 interface ShowWithStats extends Show {
   blockedCount?: number;
+  active?: boolean;
 }
 
 interface Stats {
   totalBlocked: number;
   todayBlocked: number;
   topShow: string;
+}
+
+interface WhitelistedSite {
+  domain: string;
 }
 
 function App() {
@@ -25,33 +45,48 @@ function App() {
     todayBlocked: 0,
     topShow: ''
   });
+  const [protectionLevel, setProtectionLevel] = useState<'standard' | 'aggressive' | 'paranoid'>('standard');
+  const [settings, setSettings] = useState({
+    showNotifications: true,
+    autoReveal: false,
+    blockImages: true
+  });
+  const [whitelistedSites, setWhitelistedSites] = useState<WhitelistedSite[]>([
+    { domain: 'netflix.com' },
+    { domain: 'hbomax.com' },
+    { domain: 'disneyplus.com' }
+  ]);
 
   useEffect(() => {
     // Load saved shows, protection state, and stats from storage
-    chrome.storage.sync.get(['shows', 'isProtectionEnabled', 'stats'], (result) => {
-      if (result.shows) {
-        // Add some example blocked counts for demonstration
-        const showsWithStats = result.shows.map((show: Show) => ({
-          ...show,
-          blockedCount: Math.floor(Math.random() * 15) + 1 // Random number between 1-15
-        }));
-        setShows(showsWithStats);
+    chrome.storage.sync.get(
+      ['shows', 'isProtectionEnabled', 'stats', 'settings', 'protectionLevel', 'whitelistedSites'], 
+      (result) => {
+        if (result.shows) {
+          const showsWithStats = result.shows.map((show: Show) => ({
+            ...show,
+            blockedCount: Math.floor(Math.random() * 15) + 1,
+            active: true
+          }));
+          setShows(showsWithStats);
 
-        // Calculate stats based on shows
-        const totalBlocked = showsWithStats.reduce((sum: number, show: ShowWithStats) => 
-          sum + (show.blockedCount || 0), 0
-        );
-        const topShow = showsWithStats.reduce((prev: ShowWithStats, current: ShowWithStats) => 
-          (current.blockedCount || 0) > (prev.blockedCount || 0) ? current : prev
-        ).title;
+          const totalBlocked = showsWithStats.reduce((sum: number, show: ShowWithStats) => 
+            sum + (show.blockedCount || 0), 0
+          );
+          const topShow = showsWithStats.reduce((prev: ShowWithStats, current: ShowWithStats) => 
+            (current.blockedCount || 0) > (prev.blockedCount || 0) ? current : prev
+          ).title;
 
-        setStats({
-          totalBlocked,
-          todayBlocked: Math.floor(totalBlocked * 0.2), // Example: 20% of total for today
-          topShow
-        });
-      }
-      setIsProtectionEnabled(result.isProtectionEnabled ?? true);
+          setStats({
+            totalBlocked,
+            todayBlocked: Math.floor(totalBlocked * 0.2),
+            topShow
+          });
+        }
+        if (result.settings) setSettings(result.settings);
+        if (result.protectionLevel) setProtectionLevel(result.protectionLevel);
+        if (result.whitelistedSites) setWhitelistedSites(result.whitelistedSites);
+        setIsProtectionEnabled(result.isProtectionEnabled ?? true);
     });
   }, []);
 
@@ -60,7 +95,6 @@ function App() {
     setIsProtectionEnabled(newState);
     chrome.storage.sync.set({ isProtectionEnabled: newState });
     
-    // Notify content script of the toggle
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs[0]?.id) {
         chrome.tabs.sendMessage(tabs[0].id, {
@@ -78,13 +112,13 @@ function App() {
       id: Date.now().toString(),
       title: newTitle.trim(),
       type: activeTab === 'shows' ? 'show' : 'movie',
-      blockedCount: 0
+      blockedCount: 0,
+      active: true
     };
 
     const updatedShows = [...shows, newShow];
     setShows(updatedShows);
     chrome.storage.sync.set({ shows: updatedShows }, () => {
-      // Notify content script of the update
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         if (tabs[0]?.id) {
           chrome.tabs.sendMessage(tabs[0].id, {
@@ -101,7 +135,6 @@ function App() {
     const updatedShows = shows.filter(show => show.id !== id);
     setShows(updatedShows);
     chrome.storage.sync.set({ shows: updatedShows }, () => {
-      // Notify content script of the update
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         if (tabs[0]?.id) {
           chrome.tabs.sendMessage(tabs[0].id, {
@@ -113,6 +146,40 @@ function App() {
     });
   };
 
+  const toggleShowActive = (id: string) => {
+    const updatedShows = shows.map(show => 
+      show.id === id ? { ...show, active: !show.active } : show
+    );
+    setShows(updatedShows);
+    chrome.storage.sync.set({ shows: updatedShows }, () => {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]?.id) {
+          chrome.tabs.sendMessage(tabs[0].id, {
+            type: 'UPDATE_SHOWS',
+            shows: updatedShows
+          });
+        }
+      });
+    });
+  };
+
+  const removeWhitelistedSite = (domain: string) => {
+    const updatedSites = whitelistedSites.filter(site => site.domain !== domain);
+    setWhitelistedSites(updatedSites);
+    chrome.storage.sync.set({ whitelistedSites: updatedSites });
+  };
+
+  const addWhitelistedSite = () => {
+    // Implementation for adding a new whitelisted site
+    // This would typically open a modal or prompt for input
+  };
+
+  const updateSettings = (key: keyof typeof settings, value: boolean) => {
+    const updatedSettings = { ...settings, [key]: value };
+    setSettings(updatedSettings);
+    chrome.storage.sync.set({ settings: updatedSettings });
+  };
+
   const filteredShows = shows.filter(show => {
     const matchesTab = (activeTab === 'shows' && show.type === 'show') || 
                       (activeTab === 'movies' && show.type === 'movie');
@@ -121,170 +188,294 @@ function App() {
   });
 
   return (
-    <div className="w-[400px]">
+    <div className="w-[350px] h-[600px] flex flex-col bg-amber-50 text-stone-900">
       {/* Header */}
-      <div className="bg-[#8B4513] p-4 flex items-center justify-between">
+      <header className="bg-gradient-to-r from-amber-800 to-amber-950 px-3 py-2.5 flex items-center gap-2">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-[#3D1D0B] rounded-xl flex items-center justify-center">
-            <svg className="w-8 h-8 text-[#F7D675]" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 2.18l7 3.12v4.7c0 4.83-3.4 9.36-7 10.6-3.6-1.24-7-5.77-7-10.6V6.3l7-3.12z"/>
-            </svg>
+          <div className="bg-amber-950 p-1.5 rounded-md">
+            <Shield className="h-6 w-6 text-amber-300" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-2xl font-bold text-[#F7D675]">PLOT</span>
-              <span className="text-2xl font-bold text-white">ARMOR</span>
-            </div>
-            <p className="text-[#F7D675] text-sm">Your shield against spoilers</p>
+            <h1 className="text-xl font-bold text-white">
+              <span className="text-amber-300">PLOT</span> ARMOR
+            </h1>
+            <p className="text-xs text-amber-100">Your shield against spoilers</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-white">Active</span>
-          <button
-            onClick={toggleProtection}
-            className={`w-14 h-8 rounded-full relative transition-colors ${
-              isProtectionEnabled ? 'bg-[#F7D675]' : 'bg-gray-300'
-            }`}
-          >
-            <span
-              className={`absolute top-1 w-6 h-6 rounded-full transition-transform bg-white shadow-md ${
-                isProtectionEnabled ? 'right-1' : 'left-1'
-              }`}
-            />
-          </button>
+        <div className="ml-auto flex items-center gap-2">
+          <span className="text-sm text-amber-100">Active</span>
+          <Switch 
+            checked={isProtectionEnabled} 
+            onCheckedChange={toggleProtection}
+            className="data-[state=checked]:bg-amber-300"
+          />
+        </div>
+      </header>
+
+      {/* Stats Bar */}
+      <div className="bg-amber-100/50 px-3 py-2 flex items-center justify-between text-sm text-amber-900 border-b border-amber-200">
+        <div className="flex items-center gap-1">
+          <Shield className="h-4 w-4" />
+          <span>
+            <strong>{stats.totalBlocked}</strong> spoilers blocked
+          </span>
+        </div>
+        <Separator orientation="vertical" className="h-4 bg-amber-300/30" />
+        <div>
+          <span>
+            <strong>{stats.todayBlocked}</strong> today
+          </span>
+        </div>
+        <Separator orientation="vertical" className="h-4 bg-amber-300/30" />
+        <div>
+          <span>
+            Top: <strong>{stats.topShow}</strong>
+          </span>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="bg-[#FFF8E7]">
-        {/* Stats Bar */}
-        <div className="bg-[#8B4513]/10 p-3 mx-2 mt-2 rounded-lg">
-          <div className="flex items-center gap-3 text-[#8B4513]">
-            <svg className="w-5 h-5 text-[#8B4513]/70" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
-              <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd"/>
-            </svg>
-            <div className="flex items-center gap-1.5">
-              <span className="px-2 py-0.5 bg-[#8B4513] text-white rounded font-medium">{stats.totalBlocked}</span>
-              <span className="text-[#8B4513]/70">total</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="px-2 py-0.5 bg-[#8B4513] text-white rounded font-medium">{stats.todayBlocked}</span>
-              <span className="text-[#8B4513]/70">today</span>
-            </div>
-            {stats.topShow && (
-              <div className="ml-2 px-3 py-1 bg-[#8B4513]/5 rounded-lg border border-[#8B4513]/20">
-                <span className="text-[#8B4513]/70 text-sm">Top: </span>
-                <span className="text-[#8B4513] text-sm font-medium">{stats.topShow}</span>
-              </div>
-            )}
+      <div className="flex-1 flex flex-col min-h-0">
+        {/* Tabs */}
+        <div className="px-3 pt-3">
+          <div className="grid w-full grid-cols-3 bg-stone-200 rounded-lg overflow-hidden">
+            <button
+              onClick={() => setActiveTab('shows')}
+              className={`py-2 px-4 text-sm transition-all ${
+                activeTab === 'shows'
+                  ? 'bg-white shadow text-amber-900 font-medium'
+                  : 'text-stone-600 hover:text-stone-900'
+              }`}
+            >
+              TV Shows
+            </button>
+            <button
+              onClick={() => setActiveTab('movies')}
+              className={`py-2 px-4 text-sm transition-all ${
+                activeTab === 'movies'
+                  ? 'bg-white shadow text-amber-900 font-medium'
+                  : 'text-stone-600 hover:text-stone-900'
+              }`}
+            >
+              Movies
+            </button>
+            <button
+              onClick={() => setActiveTab('dashboard')}
+              className={`py-2 px-4 text-sm transition-all ${
+                activeTab === 'dashboard'
+                  ? 'bg-white shadow text-amber-900 font-medium'
+                  : 'text-stone-600 hover:text-stone-900'
+              }`}
+            >
+              Dashboard
+            </button>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="bg-[#8B4513]/20 p-2 flex gap-1 rounded-lg mx-2 mt-2">
-          <button
-            onClick={() => setActiveTab('shows')}
-            className={`flex-1 py-2 px-4 rounded-lg transition-all ${
-              activeTab === 'shows' 
-                ? 'bg-white shadow-md text-[#8B4513] font-medium' 
-                : 'text-white/90 hover:bg-[#8B4513]/30 hover:text-white'
-            }`}
-          >
-            TV Shows
-          </button>
-          <button
-            onClick={() => setActiveTab('movies')}
-            className={`flex-1 py-2 px-4 rounded-lg transition-all ${
-              activeTab === 'movies' 
-                ? 'bg-white shadow-md text-[#8B4513] font-medium' 
-                : 'text-white/90 hover:bg-[#8B4513]/30 hover:text-white'
-            }`}
-          >
-            Movies
-          </button>
-          <button
-            onClick={() => setActiveTab('dashboard')}
-            className={`flex-1 py-2 px-4 rounded-lg transition-all ${
-              activeTab === 'dashboard' 
-                ? 'bg-white shadow-md text-[#8B4513] font-medium' 
-                : 'text-white/90 hover:bg-[#8B4513]/30 hover:text-white'
-            }`}
-          >
-            Dashboard
-          </button>
-        </div>
-
+        {/* Shows & Movies Content */}
         {(activeTab === 'shows' || activeTab === 'movies') && (
-          <div className="p-4 space-y-3">
-            {/* Search */}
-            <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search shows..."
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#8B4513]"
-              />
-              <svg className="w-5 h-5 text-gray-400 absolute left-3 top-3" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd"/>
-              </svg>
-            </div>
-
-            {/* Add */}
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                placeholder={`Add a ${activeTab === 'shows' ? 'show' : 'movie'}...`}
-                className="flex-1 px-4 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#8B4513]"
-              />
-              <button
-                onClick={addShow}
-                className="w-12 h-12 bg-[#8B4513] text-white rounded-lg hover:bg-[#6B3410] transition-colors flex items-center justify-center"
-              >
-                <svg className="w-6 h-6" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd"/>
-                </svg>
-              </button>
-            </div>
-
-            {/* Show List */}
-            <div className="space-y-2">
-              {filteredShows.map(show => (
-                <div 
-                  key={show.id} 
-                  className="flex items-center gap-3 bg-white p-3 rounded-lg border border-gray-200"
+          <div className="flex-1 flex flex-col px-3 min-h-0">
+            {/* Search & Add */}
+            <div className="space-y-3 py-3">
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-stone-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={`Search ${activeTab}...`}
+                  className="w-full pl-8 pr-4 py-2 rounded-lg border border-amber-800/20 bg-white text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-800"
+                />
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && addShow()}
+                  placeholder={`Add ${activeTab === 'shows' ? 'a show' : 'a movie'}...`}
+                  className="flex-1 px-4 py-2 rounded-lg border border-amber-800/20 bg-white text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-800"
+                />
+                <button
+                  onClick={addShow}
+                  className="w-10 h-10 bg-amber-800 text-white rounded-lg hover:bg-amber-900 transition-colors flex items-center justify-center"
                 >
-                  <svg className="w-5 h-5 text-[#8B4513]" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
-                    <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd"/>
-                  </svg>
-                  <span className="flex-1 font-medium text-gray-800">{show.title}</span>
-                  <span className="px-3 py-1 bg-gray-100 rounded-full text-sm font-medium text-gray-600">
-                    {show.blockedCount}
-                  </span>
-                  <button
-                    onClick={() => removeShow(show.id)}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd"/>
-                    </svg>
-                  </button>
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* List */}
+            <div className="flex-1 min-h-0 pb-3">
+              <ScrollArea className="h-[calc(100vh-350px)]">
+                <div className="space-y-2 pr-2">
+                  {filteredShows.length === 0 ? (
+                    <div className="text-sm text-stone-500 text-center py-8">
+                      {searchQuery
+                        ? `No ${activeTab} matching "${searchQuery}"`
+                        : `No ${activeTab} added yet. Add ${activeTab} to protect yourself from spoilers.`}
+                    </div>
+                  ) : (
+                    filteredShows.map(show => (
+                      <div
+                        key={show.id}
+                        className={`flex items-center justify-between p-3 rounded-lg border ${
+                          show.active
+                            ? 'bg-white border-amber-800/10 shadow-sm'
+                            : 'bg-stone-100 border-stone-200'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 overflow-hidden">
+                          <button
+                            onClick={() => toggleShowActive(show.id)}
+                            className="h-7 w-7 text-amber-800 hover:bg-amber-50 rounded-md flex items-center justify-center"
+                          >
+                            {show.active ? (
+                              <Eye className="h-4 w-4" />
+                            ) : (
+                              <EyeOff className="h-4 w-4" />
+                            )}
+                          </button>
+                          <span className={`truncate text-base ${show.active ? '' : 'line-through text-stone-400'}`}>
+                            {show.title}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="bg-amber-50">
+                            {show.blockedCount}
+                          </Badge>
+                          <button
+                            onClick={() => removeShow(show.id)}
+                            className="h-7 w-7 text-stone-400 hover:text-red-500 hover:bg-stone-100 rounded-md flex items-center justify-center"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
-              ))}
+              </ScrollArea>
             </div>
           </div>
         )}
 
+        {/* Dashboard Content */}
         {activeTab === 'dashboard' && (
-          <div className="p-4 text-center text-gray-600">
-            Dashboard content coming soon...
+          <div className="flex-1 px-3 py-3 overflow-y-auto">
+            <div className="space-y-4">
+              {/* Protection Level */}
+              <div className="bg-white rounded-md border border-amber-200 p-3">
+                <h3 className="text-sm font-medium flex items-center gap-1.5 mb-2">
+                  <Shield className="h-4 w-4 text-amber-800" />
+                  Protection Level
+                </h3>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {['standard', 'aggressive', 'paranoid'].map((level) => (
+                    <button
+                      key={level}
+                      onClick={() => setProtectionLevel(level as typeof protectionLevel)}
+                      className={`py-1.5 px-3 rounded border text-sm transition-colors ${
+                        protectionLevel === level
+                          ? 'bg-amber-800 text-white border-amber-800'
+                          : 'border-amber-200 hover:border-amber-300 hover:bg-amber-50'
+                      }`}
+                    >
+                      {level.charAt(0).toUpperCase() + level.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Quick Settings */}
+              <div className="bg-white rounded-md border border-amber-200 p-3">
+                <h3 className="text-sm font-medium flex items-center gap-1.5 mb-2">
+                  <Settings className="h-4 w-4 text-amber-800" />
+                  Quick Settings
+                </h3>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Show notifications</span>
+                    <Switch
+                      checked={settings.showNotifications}
+                      onCheckedChange={(checked) => updateSettings('showNotifications', checked)}
+                      className="data-[state=checked]:bg-amber-700"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Auto-reveal after 5 seconds</span>
+                    <Switch
+                      checked={settings.autoReveal}
+                      onCheckedChange={(checked) => updateSettings('autoReveal', checked)}
+                      className="data-[state=checked]:bg-amber-700"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Block images</span>
+                    <Switch
+                      checked={settings.blockImages}
+                      onCheckedChange={(checked) => updateSettings('blockImages', checked)}
+                      className="data-[state=checked]:bg-amber-700"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Whitelist Sites */}
+              <div className="bg-white rounded-md border border-amber-200 p-3">
+                <h3 className="text-sm font-medium flex items-center gap-1.5 mb-2">
+                  <Filter className="h-4 w-4 text-amber-800" />
+                  Whitelisted Sites
+                </h3>
+                <div className="space-y-1.5">
+                  {whitelistedSites.map((site) => (
+                    <div key={site.domain} className="flex items-center justify-between">
+                      <span className="text-sm">{site.domain}</span>
+                      <button
+                        onClick={() => removeWhitelistedSite(site.domain)}
+                        className="h-6 w-6 text-stone-400 hover:text-red-500 rounded flex items-center justify-center"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                  <div className="pt-1">
+                    <button
+                      onClick={addWhitelistedSite}
+                      className="w-full py-1.5 px-3 rounded border border-amber-800/30 text-sm text-amber-900 hover:bg-amber-50 hover:border-amber-800/50 transition-colors"
+                    >
+                      Add Website
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
+
+      {/* Footer */}
+      <footer className="bg-stone-100 border-t border-amber-200 px-3 py-2 mt-auto flex items-center justify-between">
+        <div className="flex items-center gap-1">
+          <button className="h-8 w-8 text-stone-600 hover:bg-stone-200 rounded-md flex items-center justify-center">
+            <Info className="h-5 w-5" />
+          </button>
+          <button className="h-8 w-8 text-stone-600 hover:bg-stone-200 rounded-md flex items-center justify-center">
+            <Bell className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-stone-500 text-sm">Plot Armor v1.0</span>
+          <a
+            href="#"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="h-6 w-6 text-stone-400 hover:text-stone-600 flex items-center justify-center"
+          >
+            <ExternalLink className="h-3 w-3" />
+          </a>
+        </div>
+      </footer>
     </div>
   );
 }
