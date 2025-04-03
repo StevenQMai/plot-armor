@@ -60,6 +60,3 @@ npm run build
 
 Feel free to open issues or submit pull requests for any improvements or bug fixes.
 
-## License
-
-MIT
