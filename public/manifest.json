@@ -11,7 +11,7 @@
   ],
   "action": {
     "default_popup": "index.html",
-    "default_icon": "icons/icon.svg"
+    "default_icon": "icons/plotarmor_logo.png"
   },
   "content_scripts": [
     {
@@ -20,6 +20,6 @@
     }
   ],
   "icons": {
-    "128": "icons/icon.svg"
+    "128": "icons/plotarmor_logo.png"
   }
 } 
