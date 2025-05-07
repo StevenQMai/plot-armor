@@ -14,14 +14,16 @@ export default defineConfig({
     rollupOptions: {
       input: {
         popup: 'index.html',
-        content: 'src/content.ts',
+        content: resolve(__dirname, 'src/content.ts'),
       },
       output: {
         entryFileNames: '[name].js',
         chunkFileNames: '[name].js',
         assetFileNames: '[name].[ext]'
       }
-    }
+    },
+    sourcemap: true,
+    minify: false
   },
   publicDir: 'public',
   resolve: {
