@@ -56,11 +56,12 @@ function App() {
     { domain: 'hbomax.com' },
     { domain: 'disneyplus.com' }
   ]);
+  const [protectionStyle, setProtectionStyle] = useState<'blur' | 'opaque'>('blur');
 
   useEffect(() => {
     // Load saved shows, protection state, and stats from storage
     chrome.storage.sync.get(
-      ['shows', 'isProtectionEnabled', 'stats', 'settings', 'protectionLevel', 'whitelistedSites'], 
+      ['shows', 'isProtectionEnabled', 'stats', 'settings', 'protectionLevel', 'whitelistedSites', 'protectionStyle'], 
       (result) => {
         if (result.shows) {
           const showsWithStats = result.shows.map((show: Show) => ({
@@ -86,6 +87,7 @@ function App() {
         if (result.settings) setSettings(result.settings);
         if (result.protectionLevel) setProtectionLevel(result.protectionLevel);
         if (result.whitelistedSites) setWhitelistedSites(result.whitelistedSites);
+        if (result.protectionStyle) setProtectionStyle(result.protectionStyle);
         setIsProtectionEnabled(result.isProtectionEnabled ?? true);
     });
   }, []);
@@ -178,6 +180,34 @@ function App() {
     const updatedSettings = { ...settings, [key]: value };
     setSettings(updatedSettings);
     chrome.storage.sync.set({ settings: updatedSettings });
+  };
+
+  const updateProtectionStyle = (style: 'blur' | 'opaque') => {
+    setProtectionStyle(style);
+    chrome.storage.sync.set({ protectionStyle: style });
+    
+    if (!isProtectionEnabled) {
+      setIsProtectionEnabled(true);
+      chrome.storage.sync.set({ isProtectionEnabled: true });
+      
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs: chrome.tabs.Tab[]) => {
+        if (tabs[0]?.id) {
+          chrome.tabs.sendMessage(tabs[0].id, {
+            type: 'TOGGLE_SPOILER_PROTECTION',
+            enabled: true
+          });
+        }
+      });
+    }
+
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs: chrome.tabs.Tab[]) => {
+      if (tabs[0]?.id) {
+        chrome.tabs.sendMessage(tabs[0].id, {
+          type: 'UPDATE_PROTECTION_STYLE',
+          style
+        });
+      }
+    });
   };
 
   const filteredShows = shows.filter(show => {
@@ -417,6 +447,31 @@ function App() {
                       onCheckedChange={(checked) => updateSettings('blockImages', checked)}
                       className="data-[state=checked]:bg-amber-700"
                     />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Protection Style</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => updateProtectionStyle('blur')}
+                        className={`px-2 py-1 rounded text-xs ${
+                          protectionStyle === 'blur'
+                            ? 'bg-amber-800 text-white'
+                            : 'bg-amber-50 text-amber-800 hover:bg-amber-100'
+                        }`}
+                      >
+                        Blur
+                      </button>
+                      <button
+                        onClick={() => updateProtectionStyle('opaque')}
+                        className={`px-2 py-1 rounded text-xs ${
+                          protectionStyle === 'opaque'
+                            ? 'bg-amber-800 text-white'
+                            : 'bg-amber-50 text-amber-800 hover:bg-amber-100'
+                        }`}
+                      >
+                        Opaque
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
