@@ -9,6 +9,13 @@
     "scripting",
     "tabs"
   ],
+  "host_permissions": [
+    "https://api.openai.com/*",
+    "https://api-inference.huggingface.co/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
     "default_popup": "index.html",
     "default_icon": "icons/plotarmor_logo.png"

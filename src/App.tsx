@@ -34,6 +34,13 @@ interface WhitelistedSite {
   domain: string;
 }
 
+interface AISettings {
+  enabled: boolean;
+  apiProvider: 'openai' | 'huggingface' | 'local';
+  confidenceThreshold: number;
+  apiKey?: string;
+}
+
 function App() {
   const [shows, setShows] = useState<ShowWithStats[]>([]);
   const [newTitle, setNewTitle] = useState('');
@@ -57,11 +64,17 @@ function App() {
     { domain: 'disneyplus.com' }
   ]);
   const [protectionStyle, setProtectionStyle] = useState<'blur' | 'opaque'>('blur');
+  const [aiSettings, setAiSettings] = useState<AISettings>({
+    enabled: false,
+    apiProvider: 'openai',
+    confidenceThreshold: 0.7,
+    apiKey: ''
+  });
 
   useEffect(() => {
     // Load saved shows, protection state, and stats from storage
     chrome.storage.sync.get(
-      ['shows', 'isProtectionEnabled', 'stats', 'settings', 'protectionLevel', 'whitelistedSites', 'protectionStyle'], 
+      ['shows', 'isProtectionEnabled', 'stats', 'settings', 'protectionLevel', 'whitelistedSites', 'protectionStyle', 'aiSettings'], 
       (result) => {
         if (result.shows) {
           const showsWithStats = result.shows.map((show: Show) => ({
@@ -88,6 +101,7 @@ function App() {
         if (result.protectionLevel) setProtectionLevel(result.protectionLevel);
         if (result.whitelistedSites) setWhitelistedSites(result.whitelistedSites);
         if (result.protectionStyle) setProtectionStyle(result.protectionStyle);
+        if (result.aiSettings) setAiSettings(result.aiSettings);
         setIsProtectionEnabled(result.isProtectionEnabled ?? true);
     });
   }, []);
@@ -205,6 +219,21 @@ function App() {
         chrome.tabs.sendMessage(tabs[0].id, {
           type: 'UPDATE_PROTECTION_STYLE',
           style
+        });
+      }
+    });
+  };
+
+  const updateAISettings = (newSettings: Partial<AISettings>) => {
+    const updatedSettings = { ...aiSettings, ...newSettings };
+    setAiSettings(updatedSettings);
+    chrome.storage.sync.set({ aiSettings: updatedSettings });
+    
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs: chrome.tabs.Tab[]) => {
+      if (tabs[0]?.id) {
+        chrome.tabs.sendMessage(tabs[0].id, {
+          type: 'UPDATE_AI_SETTINGS',
+          aiSettings: updatedSettings
         });
       }
     });
@@ -473,6 +502,80 @@ function App() {
                       </button>
                     </div>
                   </div>
+                </div>
+              </div>
+
+              {/* AI Settings */}
+              <div className="bg-white rounded-md border border-amber-200 p-3">
+                <h3 className="text-sm font-medium flex items-center gap-1.5 mb-2">
+                  <Settings className="h-4 w-4 text-amber-800" />
+                  AI Spoiler Detection
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Enable AI Detection</span>
+                    <Switch
+                      checked={aiSettings.enabled}
+                      onCheckedChange={(checked) => updateAISettings({ enabled: checked })}
+                      className="data-[state=checked]:bg-amber-700"
+                    />
+                  </div>
+                  
+                  {aiSettings.enabled && (
+                    <>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">API Provider</label>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {['openai', 'huggingface'].map((provider) => (
+                            <button
+                              key={provider}
+                              onClick={() => updateAISettings({ apiProvider: provider as 'openai' | 'huggingface' })}
+                              className={`py-1.5 px-3 rounded border text-sm transition-colors ${
+                                aiSettings.apiProvider === provider
+                                  ? 'bg-amber-800 text-white border-amber-800'
+                                  : 'border-amber-200 hover:border-amber-300 hover:bg-amber-50'
+                              }`}
+                            >
+                              {provider === 'openai' ? 'OpenAI' : 'Hugging Face'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">
+                          Confidence Threshold: {Math.round(aiSettings.confidenceThreshold * 100)}%
+                        </label>
+                        <input
+                          type="range"
+                          min="0.1"
+                          max="1"
+                          step="0.1"
+                          value={aiSettings.confidenceThreshold}
+                          onChange={(e) => updateAISettings({ confidenceThreshold: parseFloat(e.target.value) })}
+                          className="w-full h-2 bg-amber-200 rounded-lg appearance-none cursor-pointer"
+                        />
+                        <div className="flex justify-between text-xs text-stone-500">
+                          <span>Low (10%)</span>
+                          <span>High (100%)</span>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">API Key</label>
+                        <input
+                          type="password"
+                          value={aiSettings.apiKey || ''}
+                          onChange={(e) => updateAISettings({ apiKey: e.target.value })}
+                          placeholder="Enter your API key..."
+                          className="w-full px-3 py-2 rounded border border-amber-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-800"
+                        />
+                        <p className="text-xs text-stone-500">
+                          Your API key is stored locally and never shared.
+                        </p>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 

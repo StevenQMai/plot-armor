@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plot Armor Debug Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .debug-info {
+            background: #e8f4f8;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Plot Armor Debug Test</h1>
+    
+    <div class="debug-info">
+        <strong>Instructions:</strong><br>
+        1. Open Chrome DevTools (F12)<br>
+        2. Go to Console tab<br>
+        3. Look for "Plot Armor:" messages<br>
+        4. Check if extension is loaded and shows are configured
+    </div>
+    
+    <div class="test-section">
+        <h3>🧪 Test Cases</h3>
+        <p><strong>Test 1 - Character Detection:</strong> Todd's death was shocking and unexpected.</p>
+        <p><strong>Test 2 - Title Match:</strong> Breaking Bad spoiler: Walter becomes Heisenberg.</p>
+        <p><strong>Test 3 - Non-Spoiler:</strong> Todd is a common name in many shows.</p>
+        <p><strong>Test 4 - Another Character:</strong> Jesse escapes from the compound.</p>
+    </div>
+    
+    <div class="test-section">
+        <h3>🔧 Extension Setup</h3>
+        <p>Make sure you have:</p>
+        <ul>
+            <li>✅ Added "Breaking Bad" to your blocked shows in the extension popup</li>
+            <li>✅ Extension is enabled (toggle switch is ON)</li>
+            <li>✅ Reloaded this page after making changes</li>
+            <li>✅ Checked browser console for debug messages</li>
+        </ul>
+    </div>
+    
+    <div class="test-section">
+        <h3>📊 Expected Console Output</h3>
+        <div class="debug-info">
+            Plot Armor: Content script loaded with data: {shows: [...], isExtensionCurrentlyEnabled: true, ...}<br>
+            Plot Armor: Extension enabled: true<br>
+            Plot Armor: Shows to protect: [{title: "Breaking Bad", type: "show", ...}]<br>
+            Plot Armor: Starting spoiler scan for 1 shows<br>
+            Plot Armor: Testing text "Todd's death was shocking and unexpected." against show "Breaking Bad"<br>
+            Plot Armor: Character detection result: {isSpoiler: true, confidence: 0.8, ...}<br>
+            Plot Armor: Character-based spoiler detected for Breaking Bad: Character "todd" from "breaking bad" with spoiler keyword "death" (severity: 0.80)
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h3>🚨 Troubleshooting</h3>
+        <p>If you don't see the expected output:</p>
+        <ul>
+            <li>Check if the extension is properly installed and enabled</li>
+            <li>Make sure "Breaking Bad" is added to your shows list</li>
+            <li>Try reloading the extension in chrome://extensions/</li>
+            <li>Check if there are any error messages in the console</li>
+        </ul>
+    </div>
+    
+    <script>
+        // Add some dynamic content for testing
+        setTimeout(() => {
+            const dynamicContent = document.createElement('div');
+            dynamicContent.className = 'test-section';
+            dynamicContent.innerHTML = `
+                <h3>⚡ Dynamic Content Test</h3>
+                <p>This content was added dynamically: Todd's death in Breaking Bad was unexpected.</p>
+            `;
+            document.body.appendChild(dynamicContent);
+            console.log('Dynamic content added for testing');
+        }, 2000);
+        
+        // Log when page loads
+        console.log('Debug test page loaded');
+    </script>
+</body>
+</html>

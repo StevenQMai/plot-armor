@@ -15,11 +15,13 @@ export default defineConfig({
       input: {
         popup: 'index.html',
         content: resolve(__dirname, 'src/content.ts'),
+        background: resolve(__dirname, 'src/background.ts'),
       },
       output: {
         entryFileNames: '[name].js',
         chunkFileNames: '[name].js',
-        assetFileNames: '[name].[ext]'
+        assetFileNames: '[name].[ext]',
+        manualChunks: undefined
       }
     },
     sourcemap: true,

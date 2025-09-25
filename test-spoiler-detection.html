@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plot Armor Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>Plot Armor Spoiler Detection Test</h1>
+    
+    <div class="test-section">
+        <h3>Character-Based Detection Tests</h3>
+        <p>These should be detected as spoilers:</p>
+        <p>Todd's death was shocking and unexpected.</p>
+        <p>Jesse escapes from the compound in the final episode.</p>
+        <p>Hank dies in the final season of Breaking Bad.</p>
+        <p>Gus Fring's death was brutal.</p>
+    </div>
+    
+    <div class="test-section">
+        <h3>Traditional Title Match Tests</h3>
+        <p>These should be detected as spoilers (if "Breaking Bad" is in your blocked list):</p>
+        <p>Breaking Bad spoiler: Walter becomes Heisenberg.</p>
+        <p>In Breaking Bad, Jesse and Walter cook meth together.</p>
+        <p>The final episode of Breaking Bad was amazing.</p>
+    </div>
+    
+    <div class="test-section">
+        <h3>Non-Spoiler Tests</h3>
+        <p>These should NOT be detected as spoilers:</p>
+        <p>Todd is a common name in many shows.</p>
+        <p>Breaking Bad is a great television series.</p>
+        <p>Jesse Pinkman is played by Aaron Paul.</p>
+        <p>The show has five seasons total.</p>
+    </div>
+    
+    <div class="test-section">
+        <h3>Instructions</h3>
+        <ol>
+            <li>Make sure "Breaking Bad" is added to your blocked shows in Plot Armor</li>
+            <li>Enable AI detection in the extension settings</li>
+            <li>Reload this page after making changes</li>
+            <li>Check browser console (F12) for detection logs</li>
+            <li>Look for blurred text with "(Character)" or "(AI)" indicators</li>
+        </ol>
+    </div>
+    
+    <script>
+        // Add some dynamic content for testing
+        setTimeout(() => {
+            const dynamicContent = document.createElement('div');
+            dynamicContent.className = 'test-section';
+            dynamicContent.innerHTML = `
+                <h3>Dynamic Content Test</h3>
+                <p>This content was added dynamically: Todd's death in Breaking Bad was unexpected.</p>
+            `;
+            document.body.appendChild(dynamicContent);
+        }, 2000);
+    </script>
+</body>
+</html>
